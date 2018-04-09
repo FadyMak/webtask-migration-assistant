@@ -1,0 +1,19 @@
+{
+  "name": "webtask-migration-assitant",
+  "version": "1.0.0",
+  "description": "A migration assistant to copy over Rules, Custom DB scripts, and Custom Social Connection scripts from a source to a target tenant",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "auth0"
+  ],
+  "author": "Fady Abdelmalik <fady@auth0.com>",
+  "license": "MIT",
+  "dependencies": {
+    "auth0": "^2.9.1",
+    "chalk": "^2.3.2",
+    "inquirer": "^5.2.0"
+  }
+}
