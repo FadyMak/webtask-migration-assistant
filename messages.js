@@ -21,7 +21,7 @@ function customDbWithConfigWarning (customDbWithConfig) {
 
 function conflictingResourceName (type, resources) {
   console.log(warning(`\n${resources.length} ${type}(s) with the same name have been found between the source and target tenants:\n`))
-  console.log(resources.map(r => r.name).join('\n'))
+  console.log(resources.map(r => `  - ${r.name}`).join('\n'))
   console.log('\n')
 }
 
