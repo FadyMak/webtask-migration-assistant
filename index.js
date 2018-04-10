@@ -18,15 +18,13 @@ async function getResources () {
 
 async function createRulesInTarget (srcRawRules, conflicts, skipConflicts) {
   let rulesToCreate = []
-  let conflictingRuleIds = conflicts.map(c => c.id)
+  const action = skipConflicts === 1 ? 'update' : 'create'
 
   for (let srcRule of srcRawRules) {
-    if (conflictingRuleIds.includes(srcRule.id)) {
-      if (!skipConflicts) {
-        srcRule.name = `migrated-${srcRule.name}`
-        rulesToCreate.push(srcRule)
-      }
-    } else {
+    if (!conflicts[srcRule.id] || action === 'update') {
+      rulesToCreate.push(srcRule)
+    } else if (!skipConflicts) {
+      srcRule.name = `migrated-${srcRule.name}`
       rulesToCreate.push(srcRule)
     }
   }
@@ -37,48 +35,54 @@ async function createRulesInTarget (srcRawRules, conflicts, skipConflicts) {
   let failedRules = []
   let successfulRules = []
 
-  // create rules in target tenant
+  // create/update rules in target tenant
   for (let rule of rulesToCreate) {
     try {
+      const ruleId = rule.id
       delete rule.id
-
-      // All new Rules will be added to the end of the Rules list in the target
-      // tenant
+      // All new Rules will be added to the end of the Rules list in the target tenant
       delete rule.order
 
-      await auth0Target.rules.create(rule)
+      if (action === 'update') {
+        const data = rule
+        rule = { id: conflicts[ruleId] }
+        delete data.stage
+        await auth0Target.rules.update(rule, data)
+      } else {
+        await auth0Target.rules.create(rule)
+      }
+
       successfulRules.push(rule)
     } catch (e) {
       failedRules.push({
         rule,
         message: e.message
       })
-      messages.failedToCreateResource('Rule', rule, e.message)
+      messages.failedToCreateResource('Rule', rule, action, e.message)
     }
   }
 
-  messages.successfullyCreatedResources('Rules', successfulRules.length)
+  messages.successfullyCreatedResources('Rules', successfulRules.length, action)
 }
 
 async function createConnectionsInTarget (srcRawCxns, conflicts, skipConflicts) {
   let cxnsToCreate = []
-  let conflictingCxnIds = conflicts.map(c => c.id)
+  let conflictingCxnIds = Object.keys(conflicts)
+  const action = skipConflicts === 1 ? 'update' : 'create'
 
   for (let srcCxn of srcRawCxns) {
-    if (conflictingCxnIds.includes(srcCxn.id)) {
-      if (!skipConflicts) {
-        srcCxn.name = `migrated-${srcCxn.name}`
+    if (!conflicts[srcCxn.id] || action === 'update') {
+      cxnsToCreate.push(srcCxn)
+    } else if (!skipConflicts) {
+      srcCxn.name = `migrated-${srcCxn.name}`
 
-        // update the realms to match the updated name
-        if (srcCxn.realms) {
-          srcCxn.realms = srcCxn.realms.map(realm => {
-            return `migrated-${realm}`
-          })
-        }
-
-        cxnsToCreate.push(srcCxn)
+      // update the realms to match the updated name
+      if (srcCxn.realms) {
+        srcCxn.realms = srcCxn.realms.map(realm => {
+          return `migrated-${realm}`
+        })
       }
-    } else {
+
       cxnsToCreate.push(srcCxn)
     }
   }
@@ -91,6 +95,7 @@ async function createConnectionsInTarget (srcRawCxns, conflicts, skipConflicts) 
   // create Connections in target tenant
   for (let cxn of cxnsToCreate) {
     try {
+      const cxnId = cxn.id
       delete cxn.id
       delete cxn.enabled_clients
 
@@ -114,18 +119,27 @@ async function createConnectionsInTarget (srcRawCxns, conflicts, skipConflicts) 
         delete cxn.options.configuration
       }
 
-      await auth0Target.connections.create(cxn)
+      if (action === 'update') {
+        const data = cxn
+        cxn = { id: conflicts[cxnId] }
+        delete data.name
+        delete data.strategy
+        await auth0Target.connections.update(cxn, data)
+      } else {
+        await auth0Target.connections.create(cxn)
+      }
+
       successfulCxns.push(cxn)
     } catch (e) {
       failedCxns.push({
         cxn,
         message: e.message
       })
-      messages.failedToCreateResource('Connection', cxn, e.message)
+      messages.failedToCreateResource('Connection', cxn, action, e.message)
     }
   }
 
-  messages.successfullyCreatedResources('Connections', successfulCxns.length)
+  messages.successfullyCreatedResources('Connections', successfulCxns.length, action)
 
   if (Object.keys(customDbWithConfig).length > 0) {
     messages.customDbWithConfigWarning(customDbWithConfig)
@@ -133,14 +147,15 @@ async function createConnectionsInTarget (srcRawCxns, conflicts, skipConflicts) 
 }
 
 function processRules (srcRawRules, trgtRawRules) {
-  let conflicts = []
+  let conflicts = {}
 
   if (srcRawRules.length > 0 && trgtRawRules.length > 0) {
     for (let trgtRule of trgtRawRules) {
-      const matchingRules = srcRawRules.filter(srcRule => {
-        return trgtRule.name === srcRule.name
-      })
-      conflicts = [...conflicts, ...matchingRules]
+      srcRawRules
+        .filter(srcRule => trgtRule.name === srcRule.name)
+        .forEach(srcRule => {
+          conflicts[srcRule.id] = trgtRule.id
+        })
     }
   }
 
@@ -148,7 +163,7 @@ function processRules (srcRawRules, trgtRawRules) {
 }
 
 function processConnections (srcRawConnections, trgtRawConnections) {
-  let cxnConflicts = []
+  let cxnConflicts = {}
 
   const customConnections = srcRawConnections.filter(connection => {
     return (
@@ -161,10 +176,11 @@ function processConnections (srcRawConnections, trgtRawConnections) {
   })
 
   for (let trgtCxn of trgtRawConnections) {
-    const matchingCxns = customConnections.filter(srcCxn => {
-      return trgtCxn.name === srcCxn.name
-    })
-    cxnConflicts = [...cxnConflicts, ...matchingCxns]
+    customConnections
+      .filter(srcCxn => trgtCxn.name === srcCxn.name)
+      .forEach(srcCxn => {
+        cxnConflicts[srcCxn.id] = trgtCxn.id
+      })
   }
 
   return { customConnections, cxnConflicts }
@@ -184,7 +200,7 @@ function processConnections (srcRawConnections, trgtRawConnections) {
     domain: creds.trgtDomain,
     clientId: creds.trgtClientId,
     clientSecret: creds.trgtClientSecret,
-    scope: 'read:connections read:rules create:connections create:rules',
+    scope: 'read:connections read:rules create:connections create:rules update:connections update:rules',
   })
 
   let srcRawRules, srcRawConnections, trgtRawRules, trgtRawConnections = []
@@ -209,10 +225,11 @@ function processConnections (srcRawConnections, trgtRawConnections) {
 
   if (resources.includes('Rules')) {
     const ruleConflicts = processRules(srcRawRules, trgtRawRules)
-    let skipConflictingRules = false
+    let skipConflictingRules = 0
 
-    if (ruleConflicts.length > 0) {
-      messages.conflictingResourceName('Rule', ruleConflicts)
+    const conflictingRuleIds = Object.keys(ruleConflicts)
+    if (conflictingRuleIds.length > 0) {
+      messages.conflictingResourceName('Rule', srcRawRules.filter(r => conflictingRuleIds.includes(r.id)))
       skipConflictingRules = await prompts.promptOnRuleConflicts()
     }
 
@@ -225,10 +242,11 @@ function processConnections (srcRawConnections, trgtRawConnections) {
       cxnConflicts
     } = processConnections(srcRawConnections, trgtRawConnections)
 
-    let skipConflictingCxns = false
+    let skipConflictingCxns = 0
 
-    if (cxnConflicts.length > 0) {
-      messages.conflictingResourceName('Connection', cxnConflicts)
+    const conflictingCxnIds = Object.keys(cxnConflicts)
+    if (conflictingCxnIds.length > 0) {
+      messages.conflictingResourceName('Connection', srcRawConnections.filter(c => conflictingCxnIds.includes(c.id)))
       skipConflictingCxns = await prompts.promptOnConnectionConflicts()
     }
 

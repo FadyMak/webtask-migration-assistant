@@ -13,7 +13,7 @@ The Migration Assistant relies on the Management API to copy resources from one 
 
 1. Ensure that the you have correctly setup a Non-Interactive Client to access the Auth0 Management API in both your source and target tenants. (See: https://auth0.com/docs/api/management/v2/tokens#automate-the-process)
 2. The source (production) tenant requires that the Client is granted the following scopes: `read:connections` `read:rules`
-3. The target (development) tenant, requires that the Client is granted the following scopes: `read:connections` `read:rules` `create:connections` `create:rules`
+3. The target (development) tenant, requires that the Client is granted the following scopes: `read:connections` `read:rules` `create:connections` `create:rules` `update:connections` `update:rules`
 
 ## Running the Migration Assistant
 
@@ -26,10 +26,11 @@ The Migration Assistant relies on the Management API to copy resources from one 
 
 If your target (development) tenant is newly created and contains no pre-existing Rules or Connections, you do not have to worry about naming conflicts.
 
-If your target (development) tenant contains Connections/Rules which have the same name as the source (production) tenant, then the Migration Assistant will list those resources and ask you to select one of two options:
+If your target (development) tenant contains Connections/Rules which have the same name as the source (production) tenant, then the Migration Assistant will list those resources and ask you to select one of three options:
 
-1. Skip the rules/connections that have the same name when copying them between tenants
-2. Copy over the rules/connections that have the same name and prefix them with `migrated-`
+1. Copy over the rules/connections that have the same name and prefix them with `migrated-`
+2. Update the rules/connections that have the same name
+3. Skip the rules/connections that have the same name when copying them between tenants
 
 ## Next Steps
 
@@ -44,7 +45,7 @@ After you have successfully run through the Migration Assistant, we recommend yo
 
 ## Helpful Resources
 
-- [Migration Guide](TODO-ADD-LINK)
+- [Migration Guide](https://auth0.com/docs/migrations/extensibility-node8.html)
 - [Auth0 Community](https://community.auth0.com/)
 - [Auth0 Support](https://support.auth0.com/)
 - [Breaking changes between Node v4 LTS and v6 LTS](https://github.com/nodejs/node/wiki/Breaking-changes-between-v4-LTS-and-v6-LTS)
