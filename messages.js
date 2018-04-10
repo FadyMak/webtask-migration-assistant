@@ -53,7 +53,8 @@ function migrationCompleted () {
   console.log('  Breaking changes between Node v4 LTS and v6 LTS: https://github.com/nodejs/node/wiki/Breaking-changes-between-v4-LTS-and-v6-LTS')
   console.log('  Breaking changes between v6 LTS and v8 LTS: https://github.com/nodejs/node/wiki/Breaking-changes-between-v6-LTS-and-v8-LTS')
   console.log('\n')
-  console.log(chalk.bold('Report any issues with the migration assistant: https://github.com/FadyMak/webtask-migration-assistant/issues'))
+  console.log(chalk.bold('Report any issues with the migration assistant: https://github.com/auth0/webtask-migration-assistant/issues'))
+  console.log('\n')  
 }
 
 module.exports = {

@@ -43,11 +43,11 @@ async function createRulesInTarget (srcRawRules, conflicts, skipConflicts) {
       // All new Rules will be added to the end of the Rules list in the target tenant
       delete rule.order
 
-      if (action === 'update') {
-        const data = rule
-        rule = { id: conflicts[ruleId] }
-        delete data.stage
-        await auth0Target.rules.update(rule, data)
+      if (action === 'update' && conflicts[ruleId]) {
+        const ruleUpdateData = { ...rule }
+        const ruleUpdateParams = { id: conflicts[ruleId] }
+        delete ruleUpdateData.stage
+        await auth0Target.rules.update(ruleUpdateParams, ruleUpdateData)
       } else {
         await auth0Target.rules.create(rule)
       }
@@ -119,12 +119,12 @@ async function createConnectionsInTarget (srcRawCxns, conflicts, skipConflicts) 
         delete cxn.options.configuration
       }
 
-      if (action === 'update') {
-        const data = cxn
-        cxn = { id: conflicts[cxnId] }
-        delete data.name
-        delete data.strategy
-        await auth0Target.connections.update(cxn, data)
+      if (action === 'update' && conflicts[cxnId]) {
+        const cxnUpdateData = { ...cxn }
+        const cxnUpdateParams = { id: conflicts[cxnId] }
+        delete cxnUpdateData.name
+        delete cxnUpdateData.strategy
+        await auth0Target.connections.update(cxnUpdateParams, cxnUpdateData)
       } else {
         await auth0Target.connections.create(cxn)
       }
