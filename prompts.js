@@ -74,7 +74,8 @@ async function promptForResources () {
 async function promptOnRuleConflicts () {
   const choices = [
     'Copy them over as new Rules (prefixed with "migrated-")',
-    'Skip those rules when copying'
+    'Update existing rules in place',
+    'Skip conflicting rules when copying'
   ]
 
   const response = await inquirer.prompt([
@@ -86,13 +87,14 @@ async function promptOnRuleConflicts () {
     }
   ])
 
-  return response.rulesConflictChoice === choices[1]
+  return choices.indexOf(response.rulesConflictChoice)
 }
 
 async function promptOnConnectionConflicts () {
   const choices = [
     'Copy them over as new Connections (prefixed with "migrated-")',
-    'Skip those connections when copying'
+    'Update existing connections in place',
+    'Skip conflicting connections when copying'
   ]
 
   const response = await inquirer.prompt([
@@ -104,7 +106,7 @@ async function promptOnConnectionConflicts () {
     }
   ])
 
-  return response.connectionsConflictChoice === choices[1]
+  return choices.indexOf(response.connectionsConflictChoice)
 }
 
 function validateClientId (value) {
